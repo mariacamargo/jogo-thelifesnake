@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+
+# Fotos/musicas pessoais usadas pelo jogo (assets/face.*, assets/musica.*)
+# ficam de fora do repositorio por padrao.
+assets/*
+!assets/.gitkeep
