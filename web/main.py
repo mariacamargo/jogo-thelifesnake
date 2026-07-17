@@ -130,10 +130,8 @@ def _make_font(size):
 
 class Game:
     def __init__(self):
-        try:
-            pygame.mixer.pre_init(frequency=SAMPLE_RATE, size=-16, channels=1, buffer=512)
-        except Exception:
-            pass
+        # No navegador o audio do pygame ja vem configurado pelo pygbag;
+        # forcar mono/buffer customizado aqui pode impedir o mixer de iniciar.
         pygame.init()
         pygame.display.set_caption("The Life Snake")
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -657,5 +655,6 @@ async def main():
     await Game().run()
 
 
-if __name__ == "__main__":
-    asyncio.run(main())
+# No navegador (pygbag) o main.py nao roda com __name__ == "__main__",
+# entao a chamada precisa ser incondicional — senao o jogo nunca inicia.
+asyncio.run(main())
