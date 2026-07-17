@@ -122,6 +122,12 @@ def draw_fallback_head(surface, rect):
     pygame.draw.circle(surface, PRETO_COBRA, (cx + r, cy - r // 2), 2)
 
 
+def _make_font(size):
+    font = pygame.font.Font(None, size)
+    font.set_bold(True)
+    return font
+
+
 class Game:
     def __init__(self):
         try:
@@ -132,11 +138,13 @@ class Game:
         pygame.display.set_caption("The Life Snake")
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         self.clock = pygame.time.Clock()
-        self.font_hud = pygame.font.SysFont("couriernew", 20, bold=True)
-        self.font_msg = pygame.font.SysFont("couriernew", 22, bold=True)
-        self.font_big = pygame.font.SysFont("couriernew", 34, bold=True)
-        self.font_title = pygame.font.SysFont("couriernew", 44, bold=True)
-        self.font_btn = pygame.font.SysFont("couriernew", 22, bold=True)
+        # "Courier New" nao existe dentro do navegador (fonte do Windows), entao usamos
+        # a fonte padrao embutida do proprio pygame, que renderiza igual em qualquer navegador.
+        self.font_hud = _make_font(20)
+        self.font_msg = _make_font(22)
+        self.font_big = _make_font(34)
+        self.font_title = _make_font(44)
+        self.font_btn = _make_font(22)
 
         self.head_size = int(CELL * 1.8)
         self.head_surface = build_head_surface(self.head_size)
