@@ -58,7 +58,14 @@ BOTAO_HOVER = (150, 25, 52)
 DPAD_COR = (255, 255, 255, 60)
 DPAD_BORDA = (235, 225, 205, 160)
 
-ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+# No navegador (pygbag) __file__ pode nao existir; cai pro diretorio atual.
+try:
+    _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+except NameError:
+    _BASE_DIR = os.getcwd()
+ASSETS_DIR = os.path.join(_BASE_DIR, "assets")
+if not os.path.isdir(ASSETS_DIR) and os.path.isdir("assets"):
+    ASSETS_DIR = os.path.abspath("assets")
 AUDIO_EXTENSIONS = ("mp3", "ogg", "wav")
 SAMPLE_RATE = 44100
 
@@ -145,9 +152,14 @@ class Game:
         self.font_btn = _make_font(22)
 
         self.head_size = int(CELL * 1.8)
-        self.head_surface = build_head_surface(self.head_size)
         self.logo_head_size = 100
-        self.logo_head_surface = build_head_surface(self.logo_head_size)
+        # Se a foto falhar ao carregar no navegador, o jogo segue com a cabeca padrao.
+        try:
+            self.head_surface = build_head_surface(self.head_size)
+            self.logo_head_surface = build_head_surface(self.logo_head_size)
+        except Exception:
+            self.head_surface = None
+            self.logo_head_surface = None
         title_zone = pygame.Rect(WIDTH // 2 - 240, 130, 480, 90)
         self._sparkles = []
         while len(self._sparkles) < 12:
@@ -181,7 +193,11 @@ class Game:
         self.dpad_right = pygame.Rect(0, 0, size, size)
         self.dpad_right.center = (pad_cx + gap, pad_cy)
 
-        self.setup_music()
+        # Musica nunca pode derrubar a inicializacao do jogo.
+        try:
+            self.setup_music()
+        except Exception:
+            pass
 
     def setup_music(self):
         """Toca um arquivo de assets/ se houver, senao gera uma musiquinha 8-bit propria em loop."""
@@ -651,8 +667,39 @@ class Game:
             await asyncio.sleep(0)
 
 
+async def _show_error_forever(err_text):
+    """Se algo der errado na inicializacao, mostra o traceback na propria tela
+    do jogo em vez de deixar tudo cinza — assim da pra ver o que quebrou."""
+    pygame.init()
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    font = pygame.font.Font(None, 18)
+    screen.fill(BORDO)
+    y = 8
+    for line in err_text.splitlines()[-24:]:
+        screen.blit(font.render(line[:90], True, CREME), (8, y))
+        y += 18
+    pygame.display.flip()
+    while True:
+        pygame.event.get()
+        await asyncio.sleep(0.1)
+
+
 async def main():
-    await Game().run()
+    import traceback
+    try:
+        game = Game()
+    except Exception:
+        err = traceback.format_exc()
+        print(err)
+        await _show_error_forever(err)
+        return
+
+    try:
+        await game.run()
+    except Exception:
+        err = traceback.format_exc()
+        print(err)
+        await _show_error_forever(err)
 
 
 # No navegador (pygbag) o main.py nao roda com __name__ == "__main__",
