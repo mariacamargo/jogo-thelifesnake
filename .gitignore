@@ -1,7 +1,11 @@
 __pycache__/
 *.pyc
 
-# Fotos/musicas pessoais usadas pelo jogo (assets/face.*, assets/musica.*)
-# ficam de fora do repositorio por padrao.
-assets/*
-!assets/.gitkeep
+# Foto/musica pessoal usada pelo jogo desktop (assets/face.*, assets/musica.*)
+# fica de fora do repositorio por padrao - so no seu PC.
+/assets/*
+!/assets/.gitkeep
+
+# artefatos gerados pelo pygbag ao construir a versao web
+# (o build publicado que importa fica versionado em docs/)
+web/build/

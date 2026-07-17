@@ -1,8 +1,9 @@
 """
-The Life Snake - jogo de cobrinha estilo retro (inspirado no classico "Worm")
-com fundo bordo, 12 modulos, mensagens especiais nos modulos 7 e 12,
-selecao de dificuldade e a cobrinha catando copinhos de cerveja.
+The Life Snake - versao para navegador (compilada com pygbag).
+Mesma logica do jogo desktop, com loop assincrono e controles de toque
+(D-pad na tela) para jogar no celular.
 """
+import asyncio
 import math
 import os
 import random
@@ -54,6 +55,8 @@ ESPUMA = (255, 250, 235)
 BOTAO_COR = (110, 15, 38)
 BOTAO_BORDA = (235, 225, 205)
 BOTAO_HOVER = (150, 25, 52)
+DPAD_COR = (255, 255, 255, 60)
+DPAD_BORDA = (235, 225, 205, 160)
 
 ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 AUDIO_EXTENSIONS = ("mp3", "ogg", "wav")
@@ -84,45 +87,8 @@ def find_music_file():
     return None
 
 
-def generate_chiptune_loop():
-    """Gera uma musiquinha 8-bit original e curtinha em loop, caso nao haja arquivo de audio em assets/."""
-    try:
-        import numpy as np
-    except ImportError:
-        return None
-
-    def tone(freq, duration, volume=0.22):
-        t = np.linspace(0, duration, int(SAMPLE_RATE * duration), endpoint=False)
-        wave = np.sign(np.sin(2 * np.pi * freq * t))
-        fade = int(SAMPLE_RATE * 0.006)
-        if fade > 0 and len(wave) > 2 * fade:
-            wave[:fade] *= np.linspace(0, 1, fade)
-            wave[-fade:] *= np.linspace(1, 0, fade)
-        return wave * volume
-
-    melody = [
-        (261.63, 0.22), (329.63, 0.22), (392.00, 0.22), (523.25, 0.30),
-        (392.00, 0.22), (440.00, 0.22), (392.00, 0.22), (329.63, 0.22),
-        (293.66, 0.22), (392.00, 0.22), (349.23, 0.22), (293.66, 0.30),
-    ]
-    segments = [tone(freq, dur) for freq, dur in melody]
-    waveform = np.concatenate(segments)
-    samples = (waveform * 32767).astype(np.int16)
-
-    mixer_info = pygame.mixer.get_init()
-    channels = mixer_info[2] if mixer_info else 1
-    if channels == 2:
-        samples = np.column_stack((samples, samples))
-
-    try:
-        sound = pygame.sndarray.make_sound(samples)
-    except Exception:
-        return None
-    return sound
-
-
 def build_head_surface(size):
-    """Recorta a foto em assets/ num circulo do tamanho `size` para virar a cabeca da cobra (pygame puro, sem Pillow)."""
+    """Recorta a foto em assets/ num circulo do tamanho `size` para virar a cabeca da cobra (pygame puro)."""
     path = find_head_image()
     if not path:
         return None
@@ -197,6 +163,18 @@ class Game:
         self.btn_facil_rect = pygame.Rect(0, 0, 0, 0)
         self.btn_dificil_rect = pygame.Rect(0, 0, 0, 0)
 
+        pad_cx, pad_cy = BOARD_RIGHT - 90, BOARD_BOTTOM - 90
+        size = 44
+        gap = 48
+        self.dpad_up = pygame.Rect(0, 0, size, size)
+        self.dpad_up.center = (pad_cx, pad_cy - gap)
+        self.dpad_down = pygame.Rect(0, 0, size, size)
+        self.dpad_down.center = (pad_cx, pad_cy + gap)
+        self.dpad_left = pygame.Rect(0, 0, size, size)
+        self.dpad_left.center = (pad_cx - gap, pad_cy)
+        self.dpad_right = pygame.Rect(0, 0, size, size)
+        self.dpad_right.center = (pad_cx + gap, pad_cy)
+
         self.setup_music()
 
     def setup_music(self):
@@ -212,12 +190,46 @@ class Game:
                 pass
 
         try:
-            sound = generate_chiptune_loop()
+            sound = self.generate_chiptune_loop()
             if sound:
                 sound.set_volume(0.35)
                 sound.play(loops=-1)
         except Exception:
             pass
+
+    def generate_chiptune_loop(self):
+        try:
+            import numpy as np
+        except ImportError:
+            return None
+
+        def tone(freq, duration, volume=0.22):
+            t = np.linspace(0, duration, int(SAMPLE_RATE * duration), endpoint=False)
+            wave = np.sign(np.sin(2 * np.pi * freq * t))
+            fade = int(SAMPLE_RATE * 0.006)
+            if fade > 0 and len(wave) > 2 * fade:
+                wave[:fade] *= np.linspace(0, 1, fade)
+                wave[-fade:] *= np.linspace(1, 0, fade)
+            return wave * volume
+
+        melody = [
+            (261.63, 0.22), (329.63, 0.22), (392.00, 0.22), (523.25, 0.30),
+            (392.00, 0.22), (440.00, 0.22), (392.00, 0.22), (329.63, 0.22),
+            (293.66, 0.22), (392.00, 0.22), (349.23, 0.22), (293.66, 0.30),
+        ]
+        segments = [tone(freq, dur) for freq, dur in melody]
+        waveform = np.concatenate(segments)
+        samples = (waveform * 32767).astype(np.int16)
+
+        mixer_info = pygame.mixer.get_init()
+        channels = mixer_info[2] if mixer_info else 1
+        if channels == 2:
+            samples = np.column_stack((samples, samples))
+
+        try:
+            return pygame.sndarray.make_sound(samples)
+        except Exception:
+            return None
 
     def start_game(self, difficulty):
         self.difficulty = difficulty
@@ -243,6 +255,10 @@ class Game:
         cfg = DIFFICULTIES[self.difficulty]
         return min(cfg["base_fps"] + (self.level - 1) * cfg["step"], cfg["max_fps"])
 
+    def steer(self, new_direction, opposite):
+        if self.direction != opposite:
+            self.pending_direction = new_direction
+
     # ------------------------------------------------------------------
     # Entrada
     # ------------------------------------------------------------------
@@ -264,14 +280,14 @@ class Game:
                         self.start_game("dificil")
 
                 elif self.state == "PLAYING":
-                    if event.key in (pygame.K_UP, pygame.K_w) and self.direction != DOWN:
-                        self.pending_direction = UP
-                    elif event.key in (pygame.K_DOWN, pygame.K_s) and self.direction != UP:
-                        self.pending_direction = DOWN
-                    elif event.key in (pygame.K_LEFT, pygame.K_a) and self.direction != RIGHT:
-                        self.pending_direction = LEFT
-                    elif event.key in (pygame.K_RIGHT, pygame.K_d) and self.direction != LEFT:
-                        self.pending_direction = RIGHT
+                    if event.key in (pygame.K_UP, pygame.K_w):
+                        self.steer(UP, DOWN)
+                    elif event.key in (pygame.K_DOWN, pygame.K_s):
+                        self.steer(DOWN, UP)
+                    elif event.key in (pygame.K_LEFT, pygame.K_a):
+                        self.steer(LEFT, RIGHT)
+                    elif event.key in (pygame.K_RIGHT, pygame.K_d):
+                        self.steer(RIGHT, LEFT)
 
                 elif self.state == "MILESTONE":
                     if event.key in (pygame.K_SPACE, pygame.K_RETURN):
@@ -287,6 +303,19 @@ class Game:
                         self.start_game("facil")
                     elif self.btn_dificil_rect.collidepoint(event.pos):
                         self.start_game("dificil")
+                elif self.state == "PLAYING":
+                    if self.dpad_up.collidepoint(event.pos):
+                        self.steer(UP, DOWN)
+                    elif self.dpad_down.collidepoint(event.pos):
+                        self.steer(DOWN, UP)
+                    elif self.dpad_left.collidepoint(event.pos):
+                        self.steer(LEFT, RIGHT)
+                    elif self.dpad_right.collidepoint(event.pos):
+                        self.steer(RIGHT, LEFT)
+                elif self.state == "MILESTONE":
+                    self.state = "PLAYING"
+                elif self.state in ("GAME_OVER", "WIN"):
+                    self.state = "MENU"
 
     def update(self):
         if self.state != "PLAYING":
@@ -343,7 +372,6 @@ class Game:
             pygame.draw.circle(self.screen, ROSA_COBRA, (int(x), int(y)), max(radius, 6))
             pygame.draw.circle(self.screen, ROSA_COBRA_ESCURO, (int(x), int(y)), max(radius, 6), width=2)
 
-        # rabinho enrolado no final da cobra
         tail_x, tail_y = points[0]
         pygame.draw.arc(
             self.screen, ROSA_COBRA,
@@ -361,7 +389,6 @@ class Game:
             draw_fallback_head(self.screen, head_rect)
         pygame.draw.circle(self.screen, CONTORNO_COBRA, head_rect.center, head_size // 2, width=3)
 
-        # chapeuzinho de festa em cima da cabeca
         hat_tip = (head_rect.centerx + 14, head_rect.top - 30)
         hat_left = (head_rect.centerx - 12, head_rect.top + 6)
         hat_right = (head_rect.centerx + 18, head_rect.top + 10)
@@ -369,7 +396,6 @@ class Game:
         pygame.draw.polygon(self.screen, CONTORNO_COBRA, [hat_tip, hat_left, hat_right], width=2)
         pygame.draw.circle(self.screen, ESPUMA, hat_tip, 5)
 
-        # oculos escuros caidos sobre a foto, de sacanagem
         lens_w, lens_h = head_size // 3, head_size // 5
         lens_y = head_rect.centery - 6
         left_lens = pygame.Rect(0, 0, lens_w, lens_h)
@@ -380,14 +406,12 @@ class Game:
         pygame.draw.rect(self.screen, PRETO_COBRA, right_lens, border_radius=6)
         pygame.draw.line(self.screen, PRETO_COBRA, left_lens.midright, right_lens.midleft, 3)
 
-        # bochechas coradas, bem de caricatura
         blush_y = head_rect.centery + head_size // 5
         blush_surf = pygame.Surface((head_size, head_size), pygame.SRCALPHA)
         pygame.draw.ellipse(blush_surf, (255, 90, 130, 110), (2, blush_y - head_rect.top - 6, 22, 12))
         pygame.draw.ellipse(blush_surf, (255, 90, 130, 110), (head_size - 24, blush_y - head_rect.top - 6, 22, 12))
         self.screen.blit(blush_surf, head_rect.topleft)
 
-        # linguinha vermelha pra fora, tipo cobra de desenho animado
         tongue_root = (head_rect.right - 6, head_rect.centery + head_size // 4)
         tongue_tip = (tongue_root[0] + 26, tongue_root[1] + 4)
         pygame.draw.line(self.screen, VERMELHO_GAMEOVER, tongue_root, tongue_tip, 4)
@@ -410,10 +434,10 @@ class Game:
         pygame.draw.polygon(self.screen, color, points)
 
     def draw_bouncy_title(self, text, center_y):
+        t = pygame.time.get_ticks() / 220.0
         letter_surfs = [self.font_title.render(ch, True, DOURADO) for ch in text]
         total_w = sum(s.get_width() for s in letter_surfs) + 2 * (len(text) - 1)
         x = WIDTH // 2 - total_w // 2
-        t = pygame.time.get_ticks() / 220.0
         colors = [DOURADO, CREME]
         for i, ch in enumerate(text):
             bounce = int(7 * math.sin(t + i * 0.5))
@@ -450,7 +474,7 @@ class Game:
         self._draw_button(self.btn_facil_rect, f"1 - {facil['label']}: {facil['tagline']}", mouse_pos)
         self._draw_button(self.btn_dificil_rect, f"2 - {dificil['label']}: {dificil['tagline']}", mouse_pos)
 
-        hint1 = self.font_hud.render("Setas / WASD para mover  -  ESC para sair", True, CREME)
+        hint1 = self.font_hud.render("Toque nos botoes ou use as setas", True, CREME)
         self.screen.blit(hint1, hint1.get_rect(center=(WIDTH // 2, HEIGHT - 40)))
 
     def _draw_button(self, rect, label, mouse_pos):
@@ -514,7 +538,6 @@ class Game:
         pygame.draw.polygon(self.screen, AMBAR, cup_points)
         pygame.draw.polygon(self.screen, CREME, cup_points, width=2)
 
-        # alcinha do copo, pra parecer caneca de chopp
         handle_rect = pygame.Rect(cx + top_half - 5, cy - h // 4, 14, h // 2 + 2)
         pygame.draw.arc(self.screen, CREME, handle_rect, -1.3, 1.3, width=3)
 
@@ -533,6 +556,21 @@ class Game:
         self.screen.blit(score_surf, (BOARD_LEFT, y))
         self.screen.blit(diff_surf, diff_surf.get_rect(center=(WIDTH // 2, y + 10)))
         self.screen.blit(level_surf, (BOARD_RIGHT - level_surf.get_width(), y))
+
+    def draw_dpad(self):
+        for rect, points in (
+            (self.dpad_up, [(0, 8), (-8, -6), (8, -6)]),
+            (self.dpad_down, [(0, -8), (-8, 6), (8, 6)]),
+            (self.dpad_left, [(8, 0), (-6, -8), (-6, 8)]),
+            (self.dpad_right, [(-8, 0), (6, -8), (6, 8)]),
+        ):
+            surf = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
+            pygame.draw.circle(surf, DPAD_COR, (rect.width // 2, rect.height // 2), rect.width // 2)
+            pygame.draw.circle(surf, DPAD_BORDA, (rect.width // 2, rect.height // 2), rect.width // 2, width=2)
+            cx, cy = rect.width // 2, rect.height // 2
+            tri = [(cx + px, cy + py) for px, py in points]
+            pygame.draw.polygon(surf, CREME, tri)
+            self.screen.blit(surf, rect.topleft)
 
     def draw_message_overlay(self, title, subtitle, color):
         overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
@@ -571,7 +609,7 @@ class Game:
         self.screen.blit(title_surf, title_surf.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 40)))
         info_surf = self.font_msg.render(f"Score: {self.score}  -  Modulo: {self.level}", True, CREME)
         self.screen.blit(info_surf, info_surf.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 15)))
-        sub_surf = self.font_hud.render("Pressione R para voltar ao menu", True, CREME)
+        sub_surf = self.font_hud.render("Toque na tela para voltar ao menu", True, CREME)
         self.screen.blit(sub_surf, sub_surf.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 55)))
 
     def draw(self):
@@ -585,23 +623,31 @@ class Game:
         self.draw_food()
         self.draw_hud()
 
+        if self.state == "PLAYING":
+            self.draw_dpad()
+
         if self.state == "MILESTONE":
-            self.draw_message_overlay(f"MODULO {self.level}!", "Pressione ESPACO para continuar", DOURADO)
+            self.draw_message_overlay(f"MODULO {self.level}!", "Toque na tela para continuar", DOURADO)
         elif self.state == "WIN":
-            self.draw_message_overlay("VOCE VENCEU!", "Pressione R para voltar ao menu", DOURADO)
+            self.draw_message_overlay("VOCE VENCEU!", "Toque na tela para voltar ao menu", DOURADO)
         elif self.state == "GAME_OVER":
             self.draw_message_overlay_gameover()
 
         pygame.display.flip()
 
-    def run(self):
+    async def run(self):
         while True:
             self.handle_input()
             self.update()
             self.draw()
             fps = self.current_fps() if self.state != "MENU" else 30
             self.clock.tick(fps)
+            await asyncio.sleep(0)
+
+
+async def main():
+    await Game().run()
 
 
 if __name__ == "__main__":
-    Game().run()
+    asyncio.run(main())

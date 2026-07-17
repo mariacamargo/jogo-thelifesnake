@@ -1,3 +1,2 @@
 pygame-ce
-Pillow
 numpy
