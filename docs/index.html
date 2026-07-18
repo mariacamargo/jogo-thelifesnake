@@ -1,438 +1,604 @@
-<html lang="en-us"><script src="https://pygame-web.github.io/cdn/0.9.3/pythons.js" type=module id="site" data-python="python3.12" data-LINES=42 data-COLUMNS=132 data-os="vtx,snd,gui" async defer>#<!--
-
-print("""
-Loading web from game-v3-1cdaff1.apk
-    Pygbag Version : 0.9.3
-    Template Version : 0.9.3
-    Python  : 3.12
-    CDN URL : https://pygame-web.github.io/cdn/0.9.3/
-    Screen  : 600x470
-    Title   : web
-    Folder  : web
-    Authors : pgw
-    SPDX-License-Identifier: cookiecutter.spdx
-
-""")
-
-import sys
-import asyncio
-import platform
-import json
-from pathlib import Path
-
-# do not rename
-async def custom_site():
-    import embed
-    platform.document.body.style.background = "#7f7f7f"
-
-    platform.window.transfer.hidden = true
-    platform.window.canvas.style.visibility = "visible"
-
-
-    bundle = "web"
-
-    # the C or js loader could do that but be explicit.
-    appdir = Path(f"/data/data/{bundle}") # /data/data/web
-    appdir.mkdir()
-
-
-    # unpack filesystem from compressed archive into work dir
-    if platform.window.location.host.find('.itch.zone')>0:
-        import zipfile
-        async with platform.fopen("game-v3-1cdaff1.apk", "rb") as archive:
-            with zipfile.ZipFile(archive) as zip_ref:
-                zip_ref.extractall(appdir.as_posix())
-    else:
-        import tarfile
-        async with platform.fopen("game-v3-1cdaff1.tar.gz", "rb") as archive:
-            tar = tarfile.open(fileobj=archive, mode="r:gz")
-            tar.extractall(path=appdir.as_posix(), filter='tar')
-            tar.close()
-
-    # preloader will change to work dir and prepend it to sys.path
-    platform.run_main(PyConfig, loaderhome= appdir / "assets", loadermain=None)
-
-
-    # wait preloading complete : that includes images and wasm compilation of bundled modules
-    while embed.counter()<0:
-        await asyncio.sleep(.1)
-
-    main = appdir / "assets" / "main.py"
-
-    # TODO: test for window.webkitAudioContext and block aio loop until gesture if accessing media manager play
-    # before a gesture is recorded ( touch or click )
-
-    # test/wait user media interaction
-    if not platform.window.MM.UME:
-
-        # now that apk is mounted we have access to font cache
-        # but we need to fill __file__ that is not yet set
-        __import__(__name__).__file__ = main
-
-        # now make a prompt
-        msg  = "Ready to start ! Please click/touch page"
-        platform.window.infobox.innerText = msg
-        print("\n"*4, f"    * Waiting for media user engagement. {msg} *" , "\n"*4)
-
-        while not platform.window.MM.UME:
-            await asyncio.sleep(.1)
-
-    # start async top level machinery if not started and add a console in any case if requested.
-    await TopLevel_async_handler.start_toplevel(platform.shell, console=window.python.config.debug)
-
-    # now that apk is mounted we have access to font cache
-    # but we need to fill __file__/__name__ that are not yet set
-    __import__(__name__).__file__ = main
-
-
-    def ui_callback(pkg):
-        platform.window.infobox.innerText = f"installing {pkg}"
-
-    await shell.source(main, callback=ui_callback)
-
-    # if you don't reach that step
-    # your main.py has an infinite sync loop somewhere !
-
-    platform.window.infobox.style.display = "none"
-    platform.window.config.gui_divider = 1
-    platform.window.window_resize()
-    print("default.tmpl: done")
-
-    shell.interactive()
-
-asyncio.run( custom_site() )
-
-
-
-
-
-
-
-
-
-
-
-
-# BEGIN BLOCK
-#
-# now this is the html part you can (and should) customize
-# It is not mandatory : pygame-script when it reads the first line (also called
-# shebang ) of above code create absolute minimal widget set
-# required for running with default rules
-#
-# do not alter that comment block it is separating python code from html code
-# =============================================================================
-# --></script><head><!--
-//=============================================================================
-//
-//
-//
-//
-//
-//
-//
-
-    {%- if cookiecutter.comment != "" -%}
-{{cookiecutter.comment}}
-    {% endif %}
-
---><script type="application/javascript">
-// END BLOCK
-
-
-
-// this dict is available under PyConfig.config from __main__
-
-config = {
-    xtermjs : "1" ,
-    _sdl2 : "canvas",
-    user_canvas : 0,
-    user_canvas_managed : 0,
-    gui_divider : 2,
-    ume_block : 1,
-    can_close : 0,
-    archive : "web",
-    gui_debug : 2,
-    cdn : "https://pygame-web.github.io/cdn/0.9.3/",
-    autorun : 0,
-    PYBUILD : "3.12",
-    fb_ar   :  1.77,
-    fb_width : "600",
-    fb_height : "470"
-}
-
-function show_infobox() {
-    infobox.style.display = "block";
-
-    // Measure box
-    const w = infobox.offsetWidth;
-    const h = infobox.offsetHeight;
-
-    // Center in viewport
-    const left = (window.innerWidth - w) / 2;
-    const top = (window.innerHeight - h) / 2;
-
-    infobox.style.left = left + "px";
-    infobox.style.top = top + "px";
-}
-
-</script>
-
-    <title>web</title>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="viewport" content="height=device-height, initial-scale=1.0">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes"/>
-
-
-    <link rel="icon" type="image/png" href="favicon.png" sizes="16x16">
-
-    <style>
-        #status {
-            display: inline-block;
-            vertical-align: top;
-            margin-top: 20px;
-            margin-left: 30px;
-            font-weight: bold;
-            color: rgb(120, 120, 120);
-        }
-
-        #progress {
-            height: 20px;
-            width: 300px;
-        }
-
-        #infobox {
-            position: fixed; /* center relative to viewport */
-            background: green;
-            color: blue;
-            font-weight: bold;
-            padding: 12px 24px;
- /*           display: none; */
-            z-index: 999999;
-        }
-        div.emscripten { text-align: center; }
-        div.emscripten_border { border: 1px solid black; }
-        div.thick_border { border: 4px solid black; }
-
-        /* the canvas *must not* have any border or padding, or mouse coords will be wrong */
-        /* average size of droid screen 470dp x 320dp  */
-        canvas.emscripten {
-            border: 0px none;
-            background-color: transparent;
-            width: 100%;
-            height: 100%;
-            z-index: 5;
-
-            padding: 0;
-            margin: 0 auto;
-
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            left: 0;
-            right: 0;
-        }
-
-        body {
-            font-family: arial;
-            margin: 0;
-            padding: none;
-            background-color:powderblue;
-        }
-
-        .topright{
-           position:absolute;
-           top:0px;
-           right:0px;
-        }
-
-        .bottomright {
-            position:absolute;
-            top: 40%;
-            right: 0px;
-        }
-
-        .center {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .trinfo{
-           position: relative;
-           right: 0px;
-           border: 1px solid black;
-        }
-
-        .framed{
-           position: relative;
-           top: 150px;
-           right: 10px;
-           border: 1px solid black;
-        }
-    </style>
-
-    <script>
-/*
-        if (navigator.serviceWorker)
-            navigator.serviceWorker.register("https://pygame-web.github.io/cdn/0.9.3/pygbag0.9.3.js")
-        else
-            console.warn("Service workers not supported")
-*/
-    </script>
-
-    <script src="https://pygame-web.github.io/cdn/0.9.3//browserfs.min.js"></script>
-
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>The Life Snake</title>
+<style>
+  html, body {
+    margin: 0; padding: 0;
+    background: #2d020e;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh;
+    touch-action: none;
+    overscroll-behavior: none;
+  }
+  canvas {
+    width: 100%;
+    max-width: 600px;
+    height: auto;
+    display: block;
+    image-rendering: auto;
+  }
+</style>
 </head>
-
 <body>
+<canvas id="game" width="600" height="470"></canvas>
+<script>
+"use strict";
 
-    <div id="transfer" align=center>
-<!--        <div class="spinner" id='spinner'></div> -->
-        <div class="emscripten" id="status">Downloading...</div>
-        <div class="emscripten">
-            <progress value="0" max="100" id="progress"></progress>
-        </div>
-    </div>
+// ---------------------------------------------------------------------------
+// Configuracao geral (mesmos valores do snake_game.py)
+// ---------------------------------------------------------------------------
+const CELL = 20, COLS = 28, ROWS = 18, MARGIN = 20;
+const PLAY_W = COLS * CELL, PLAY_H = ROWS * CELL;
+const WIDTH = PLAY_W + MARGIN * 2, HEIGHT = PLAY_H + MARGIN * 2 + 70;
+const BOARD_LEFT = MARGIN, BOARD_TOP = MARGIN;
+const BOARD_RIGHT = BOARD_LEFT + PLAY_W, BOARD_BOTTOM = BOARD_TOP + PLAY_H;
 
+const FOOD_PER_LEVEL = 3, MAX_LEVEL = 12;
+const MILESTONE_LEVELS = {
+  7: "PARABENS! A LOLO E GAY E VC TBM",
+  12: "PARABENS! PARABENS! PARABENS! VOCE GANHOU O JOGO, MINHA CRIATIVIDADE MORREU NA ULTIMA FRASE, MAS CE FOI MARA, PARCEIRA! VAI CURINTHIA",
+};
+const GAME_OVER_MESSAGE = "LASCOU-SE, TENTE NOVAMENTE";
 
+const DIFFICULTIES = {
+  facil:   { label: "FACIL",   tagline: "SOU LENTO",  baseFps: 6,  step: 0.7, maxFps: 13 },
+  dificil: { label: "DIFICIL", tagline: "ME GARANTO", baseFps: 11, step: 1.4, maxFps: 26 },
+};
 
-    <canvas class="emscripten" id="canvas"
-width="1px"
-height="1px"
-    oncontextmenu="event.preventDefault()" tabindex=1>
-    </canvas>
+const BORDO = "rgb(70,5,22)", BORDO_ESCURO = "rgb(45,2,14)";
+const CREME = "rgb(235,225,205)", PRETO = "rgb(18,16,20)";
+const ROSA = "rgb(255,60,165)", ROSA_ESCURO = "rgb(195,15,110)";
+const CONTORNO = "rgb(210,195,175)", DOURADO = "rgb(255,200,60)";
+const VERMELHO = "rgb(255,90,90)", AMBAR = "rgb(214,140,20)", ESPUMA = "rgb(255,250,235)";
+const BOTAO = "rgb(110,15,38)", BOTAO_HOVER = "rgb(150,25,52)";
 
-    <canvas class="emscripten" id="canvas3d"
-width="600px"
-height="470px"
-    oncontextmenu="event.preventDefault()" tabindex=1 hidden>
-    </canvas>
+const UP = [0,-1], DOWN = [0,1], LEFT = [-1,0], RIGHT = [1,0];
 
-    <div id="infobox">Loading, please wait ...</div>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
-    <div id=html></div>
+function font(px) { return "bold " + px + "px 'Courier New', monospace"; }
 
-    <div id=crt  class=bottomright >
+// ---------------------------------------------------------------------------
+// Foto da cabeca (carregada de assets/face.png; fallback: carinha dourada)
+// ---------------------------------------------------------------------------
+const faceImg = new Image();
+let faceReady = false;
+faceImg.onload = () => { faceReady = true; };
+faceImg.src = "assets/face.png";
 
-        <div id="system" hidden>
-            <div class="button-container">
-                <button id="aiostop" disabled>AIO ⏏︎</button>
-                <button id="aiopaused_true" disabled>AIO ■</button>
-                <button id="aiopaused_false" disabled>AIO ▶</button>
-                <button id="pygame_mixer_music_pause" disabled>Music ■</button>
-            </div>
+function drawHead(cx, cy, size) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, size / 2, 0, Math.PI * 2);
+  ctx.clip();
+  if (faceReady) {
+    const side = Math.min(faceImg.width, faceImg.height);
+    const sx = (faceImg.width - side) / 2, sy = (faceImg.height - side) / 2;
+    ctx.drawImage(faceImg, sx, sy, side, side, cx - size/2, cy - size/2, size, size);
+  } else {
+    ctx.fillStyle = DOURADO;
+    ctx.fillRect(cx - size/2, cy - size/2, size, size);
+    ctx.fillStyle = PRETO;
+    ctx.beginPath(); ctx.arc(cx - size/6, cy - size/8, 2, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + size/6, cy - size/8, 2, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+}
 
-            <div class="button-container">
-                <div id=load_min>min</div>
-                <div id=load_avg>avg</div>
-                <div id=load_max>max</div>
-              <button id="load_rst" disabled>RESET</button>
-            </div>
+// ---------------------------------------------------------------------------
+// Musica 8-bit (WebAudio; comeca apos o primeiro toque, regra dos navegadores)
+// ---------------------------------------------------------------------------
+const MELODY = [
+  [261.63,0.22],[329.63,0.22],[392.00,0.22],[523.25,0.30],
+  [392.00,0.22],[440.00,0.22],[392.00,0.22],[329.63,0.22],
+  [293.66,0.22],[392.00,0.22],[349.23,0.22],[293.66,0.30],
+];
+let audioCtx = null, musicTimer = null;
 
-            <div id="level">(battery level unknown)</div>
-            <div id="stateBattery">(charging state unknown)</div>
+function scheduleLoop() {
+  let t = audioCtx.currentTime + 0.05;
+  const start = t;
+  for (const [freq, dur] of MELODY) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = "square";
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.06, t + 0.01);
+    gain.gain.setValueAtTime(0.06, t + dur - 0.02);
+    gain.gain.linearRampToValueAtTime(0, t + dur);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(t); osc.stop(t + dur);
+    t += dur;
+  }
+  musicTimer = setTimeout(scheduleLoop, (t - start) * 1000 - 60);
+}
 
-        </div>
+function startMusic() {
+  if (audioCtx) return;
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    scheduleLoop();
+  } catch (e) { /* sem audio, sem drama */ }
+}
 
-        <div id=box class="emscripten_border" hidden=true>
+// ---------------------------------------------------------------------------
+// Estado do jogo
+// ---------------------------------------------------------------------------
+let state = "MENU";
+let difficulty = "facil";
+let snake = [], direction = RIGHT, pendingDirection = RIGHT;
+let score = 0, level = 1, message = "";
+let seenMilestones = new Set();
+let food = [0, 0];
+let lastMove = 0;
+let mouseX = -1, mouseY = -1;
 
-            <div id="info" class="trinfo"></div>
+const btnFacil   = { x: WIDTH/2 - 160, y: 265 - 24, w: 320, h: 48 };
+const btnDificil = { x: WIDTH/2 - 160, y: 325 - 24, w: 320, h: 48 };
 
-            <iframe id="iframe" class="framed" name="iframe"
-width="470px" height="90%"
-allowtransparency="true"
-style="z-index: 10;"
-style="background: #FFFFFF;"
-frameborder="1"
-                allowfullscreen="true"
-                webkitallowfullscreen="true"
-                msallowfullscreen="true"
-                mozallowfullscreen="true"
-                sandbox="allow-same-origin allow-top-navigation allow-scripts allow-pointer-lock"
-                allow="autoplay; fullscreen *; geolocation; microphone; camera; midi; monetization; xr-spatial-tracking; gamepad; gyroscope; accelerometer; xr; cross-origin-isolated"
-                src="https://pygame-web.github.io/cdn/0.9.3/empty.html"
-                scrolling="yes">
-            </iframe>
-        </div>
+const padCx = BOARD_RIGHT - 90, padCy = BOARD_BOTTOM - 90, padSize = 44, padGap = 48;
+const dpad = {
+  up:    { x: padCx - padSize/2,          y: padCy - padGap - padSize/2, w: padSize, h: padSize, dir: UP,    opp: DOWN  },
+  down:  { x: padCx - padSize/2,          y: padCy + padGap - padSize/2, w: padSize, h: padSize, dir: DOWN,  opp: UP    },
+  left:  { x: padCx - padGap - padSize/2, y: padCy - padSize/2,          w: padSize, h: padSize, dir: LEFT,  opp: RIGHT },
+  right: { x: padCx + padGap - padSize/2, y: padCy - padSize/2,          w: padSize, h: padSize, dir: RIGHT, opp: LEFT  },
+};
 
-    </div>
+// estrelinhas do menu (fora da zona do titulo)
+const sparkles = [];
+(function () {
+  while (sparkles.length < 12) {
+    const x = 25 + Math.random() * (WIDTH - 50);
+    const y = 15 + Math.random() * 205;
+    if (x > WIDTH/2 - 240 && x < WIDTH/2 + 240 && y > 130 && y < 220) continue;
+    sparkles.push([x, y, [7, 9, 12][Math.floor(Math.random() * 3)]]);
+  }
+})();
 
+function startGame(diff) {
+  difficulty = diff;
+  const cx = Math.floor(COLS/2), cy = Math.floor(ROWS/2);
+  snake = [[cx-1, cy], [cx-2, cy], [cx-3, cy]];
+  direction = RIGHT; pendingDirection = RIGHT;
+  score = 0; level = 1;
+  seenMilestones = new Set();
+  message = "";
+  food = spawnFood();
+  lastMove = performance.now();
+  state = "PLAYING";
+}
 
-    <div id="dlg" hidden>
-        <input type="file" id="dlg_multifile" multiple accept="image/*">
-        <label for="dlg_multifile">Select files</label>
-    </div>
+function spawnFood() {
+  while (true) {
+    const p = [Math.floor(Math.random()*COLS), Math.floor(Math.random()*ROWS)];
+    if (!snake.some(s => s[0] === p[0] && s[1] === p[1])) return p;
+  }
+}
 
-    <div id="pyconsole">
-        <div id="terminal" tabIndex=1 align="left"></div>
-    </div>
+function currentFps() {
+  const cfg = DIFFICULTIES[difficulty];
+  return Math.min(cfg.baseFps + (level - 1) * cfg.step, cfg.maxFps);
+}
 
-    <script type="application/javascript">
+function steer(dir, opp) {
+  if (direction[0] !== opp[0] || direction[1] !== opp[1]) pendingDirection = dir;
+}
 
-    globalThis.__canvas_resized = (self, ecw, ech) => {
-        console.warn("TODO: panda3d canvas monitor", self, ecw, ech)
+function update() {
+  direction = pendingDirection;
+  const head = [snake[0][0] + direction[0], snake[0][1] + direction[1]];
+
+  if (head[0] < 0 || head[0] >= COLS || head[1] < 0 || head[1] >= ROWS) { state = "GAME_OVER"; return; }
+  if (snake.some(s => s[0] === head[0] && s[1] === head[1])) { state = "GAME_OVER"; return; }
+
+  snake.unshift(head);
+
+  if (head[0] === food[0] && head[1] === food[1]) {
+    score += 1;
+    const newLevel = Math.min(1 + Math.floor(score / FOOD_PER_LEVEL), MAX_LEVEL);
+    if (newLevel !== level) {
+      level = newLevel;
+      if (MILESTONE_LEVELS[level] && !seenMilestones.has(level)) {
+        seenMilestones.add(level);
+        message = MILESTONE_LEVELS[level];
+        state = (level === MAX_LEVEL) ? "WIN" : "MILESTONE";
+        return;
+      }
     }
+    food = spawnFood();
+  } else {
+    snake.pop();
+  }
+}
 
-    async function custom_onload(debug_hidden) {
-        // this is called before anything python is loaded
-        // make your js customization here
-        console.log(__FILE__, "custom_onload")
+// ---------------------------------------------------------------------------
+// Desenho - menu (capa caricata)
+// ---------------------------------------------------------------------------
+function drawStarburst(cx, cy, outerR, innerR, spikes, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  for (let i = 0; i < spikes * 2; i++) {
+    const r = (i % 2 === 0) ? outerR : innerR;
+    const a = Math.PI * i / spikes;
+    const px = cx + r * Math.sin(a), py = cy - r * Math.cos(a);
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fill();
+}
 
-        pyconsole.hidden = debug_hidden
-        system.hidden = debug_hidden
-        transfer.hidden = debug_hidden
-        info.hidden = debug_hidden
-        box.hidden =  debug_hidden
+function drawSparkles() {
+  ctx.strokeStyle = DOURADO;
+  ctx.lineWidth = 2;
+  for (const [x, y, s] of sparkles) {
+    ctx.beginPath();
+    ctx.moveTo(x - s, y); ctx.lineTo(x + s, y);
+    ctx.moveTo(x, y - s); ctx.lineTo(x, y + s);
+    ctx.moveTo(x - s*0.7, y - s*0.7); ctx.lineTo(x + s*0.7, y + s*0.7);
+    ctx.moveTo(x - s*0.7, y + s*0.7); ctx.lineTo(x + s*0.7, y - s*0.7);
+    ctx.stroke();
+  }
+}
 
-        show_infobox()
+function drawLogoSnake(centerX, centerY, now) {
+  const n = 8, spacing = 25, amplitude = 26;
+  const wobble = now / 300;
+  const startX = centerX - (n * spacing) / 2;
+  const pts = [];
+  for (let i = 0; i <= n; i++) {
+    pts.push([startX + i * spacing, centerY + amplitude * Math.sin(i * 1.1 + wobble)]);
+  }
+
+  for (let i = 0; i < n; i++) {
+    const r = Math.max(15 - i, 6);
+    ctx.fillStyle = ROSA;
+    ctx.beginPath(); ctx.arc(pts[i][0], pts[i][1], r, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = ROSA_ESCURO; ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  // rabinho enrolado
+  ctx.strokeStyle = ROSA; ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.arc(pts[0][0] - 5, pts[0][1] + 1, 11, 0.4, 5.0);
+  ctx.stroke();
+
+  const hx = pts[n][0], hy = pts[n][1], hs = 100;
+  drawHead(hx, hy, hs);
+  ctx.strokeStyle = CONTORNO; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(hx, hy, hs/2, 0, Math.PI*2); ctx.stroke();
+
+  // chapeuzinho de festa
+  const hatTipX = hx + 14, hatTipY = hy - hs/2 - 30;
+  ctx.fillStyle = DOURADO;
+  ctx.beginPath();
+  ctx.moveTo(hatTipX, hatTipY);
+  ctx.lineTo(hx - 12, hy - hs/2 + 6);
+  ctx.lineTo(hx + 18, hy - hs/2 + 10);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = CONTORNO; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = ESPUMA;
+  ctx.beginPath(); ctx.arc(hatTipX, hatTipY, 5, 0, Math.PI*2); ctx.fill();
+
+  // oculos escuros
+  const lw = hs/3, lh = hs/5, ly = hy - 6;
+  ctx.fillStyle = PRETO;
+  roundRect(hx - lw - 4, ly - lh/2, lw, lh, 6); ctx.fill();
+  roundRect(hx + 4, ly - lh/2, lw, lh, 6); ctx.fill();
+  ctx.strokeStyle = PRETO; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(hx - 4, ly); ctx.lineTo(hx + 4, ly); ctx.stroke();
+
+  // bochechas coradas
+  ctx.fillStyle = "rgba(255,90,130,0.43)";
+  ctx.beginPath(); ctx.ellipse(hx - hs/2 + 13, hy + hs/5, 11, 6, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(hx + hs/2 - 13, hy + hs/5, 11, 6, 0, 0, Math.PI*2); ctx.fill();
+
+  // linguinha de cobra
+  const tRootX = hx + hs/2 - 6, tRootY = hy + hs/4;
+  ctx.strokeStyle = VERMELHO;
+  ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(tRootX, tRootY); ctx.lineTo(tRootX + 26, tRootY + 4); ctx.stroke();
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(tRootX + 26, tRootY + 4); ctx.lineTo(tRootX + 34, tRootY - 2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(tRootX + 26, tRootY + 4); ctx.lineTo(tRootX + 34, tRootY + 10); ctx.stroke();
+}
+
+function drawBouncyTitle(text, centerY, now) {
+  ctx.font = font(44);
+  ctx.textBaseline = "top";
+  const widths = [...text].map(ch => ctx.measureText(ch).width);
+  const totalW = widths.reduce((a,b) => a+b, 0) + 2 * (text.length - 1);
+  let x = WIDTH/2 - totalW/2;
+  const t = now / 220;
+  const colors = [DOURADO, CREME];
+  for (let i = 0; i < text.length; i++) {
+    const bounce = Math.round(7 * Math.sin(t + i * 0.5));
+    const y = centerY + bounce;
+    ctx.fillStyle = BORDO_ESCURO;
+    ctx.fillText(text[i], x + 3, y + 3);
+    ctx.fillStyle = (text[i] === " ") ? DOURADO : colors[i % 2];
+    ctx.fillText(text[i], x, y);
+    x += widths[i] + 2;
+  }
+  ctx.textBaseline = "alphabetic";
+}
+
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function drawButton(b, label) {
+  const hover = mouseX >= b.x && mouseX <= b.x + b.w && mouseY >= b.y && mouseY <= b.y + b.h;
+  ctx.fillStyle = hover ? BOTAO_HOVER : BOTAO;
+  roundRect(b.x, b.y, b.w, b.h, 8); ctx.fill();
+  ctx.strokeStyle = CREME; ctx.lineWidth = 2;
+  roundRect(b.x, b.y, b.w, b.h, 8); ctx.stroke();
+  ctx.fillStyle = CREME;
+  ctx.font = font(22);
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText(label, b.x + b.w/2, b.y + b.h/2);
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+}
+
+function drawMenu(now) {
+  ctx.fillStyle = BORDO;
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  ctx.strokeStyle = CREME; ctx.lineWidth = 3;
+  ctx.strokeRect(10, 10, WIDTH - 20, HEIGHT - 20);
+
+  drawSparkles();
+  const pulse = 6 * Math.sin(now / 260);
+  drawStarburst(WIDTH/2, 182, 140 + pulse, 100 + pulse, 10, BOTAO_HOVER);
+  drawLogoSnake(WIDTH/2, 100, now);
+  drawBouncyTitle("THE LIFE SNAKE", 180, now);
+
+  ctx.fillStyle = CREME;
+  ctx.font = font(22);
+  ctx.textAlign = "center";
+  ctx.fillText("Escolha a dificuldade, parceira:", WIDTH/2, 232);
+  ctx.textAlign = "left";
+
+  drawButton(btnFacil, "1 - FACIL: SOU LENTO");
+  drawButton(btnDificil, "2 - DIFICIL: ME GARANTO");
+
+  ctx.fillStyle = CREME;
+  ctx.font = font(20);
+  ctx.textAlign = "center";
+  ctx.fillText("Toque nos botoes ou use as setas", WIDTH/2, HEIGHT - 34);
+  ctx.textAlign = "left";
+}
+
+// ---------------------------------------------------------------------------
+// Desenho - jogo
+// ---------------------------------------------------------------------------
+function drawBoard() {
+  ctx.fillStyle = BORDO;
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  ctx.fillStyle = BORDO_ESCURO;
+  ctx.fillRect(BOARD_LEFT, BOARD_TOP, PLAY_W, PLAY_H);
+  ctx.strokeStyle = CREME; ctx.lineWidth = 3;
+  ctx.strokeRect(BOARD_LEFT, BOARD_TOP, PLAY_W, PLAY_H);
+}
+
+function drawSnake() {
+  for (let i = snake.length - 1; i >= 0; i--) {
+    const x = BOARD_LEFT + snake[i][0] * CELL + 2;
+    const y = BOARD_TOP + snake[i][1] * CELL + 2;
+    ctx.fillStyle = ROSA;
+    roundRect(x, y, CELL - 4, CELL - 4, 4); ctx.fill();
+    ctx.strokeStyle = ROSA_ESCURO; ctx.lineWidth = 2;
+    roundRect(x, y, CELL - 4, CELL - 4, 4); ctx.stroke();
+  }
+  const hx = BOARD_LEFT + snake[0][0] * CELL + CELL/2;
+  const hy = BOARD_TOP + snake[0][1] * CELL + CELL/2;
+  drawHead(hx, hy, CELL * 1.8);
+}
+
+function drawFood() {
+  const cx = BOARD_LEFT + food[0] * CELL + CELL/2;
+  const cy = BOARD_TOP + food[1] * CELL + CELL/2;
+  const w = CELL * 1.5, h = CELL * 1.4;
+  const topY = cy - h/2, botY = cy + h/2;
+  const topHalf = w/2, botHalf = Math.max(topHalf - 3, 3);
+
+  ctx.fillStyle = AMBAR;
+  ctx.beginPath();
+  ctx.moveTo(cx - topHalf, topY);
+  ctx.lineTo(cx + topHalf, topY);
+  ctx.lineTo(cx + botHalf, botY);
+  ctx.lineTo(cx - botHalf, botY);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = CREME; ctx.lineWidth = 2; ctx.stroke();
+
+  // alcinha de caneca
+  ctx.beginPath();
+  ctx.arc(cx + topHalf + 2, cy, h/4 + 2, -1.3, 1.3);
+  ctx.stroke();
+
+  // espuma
+  ctx.fillStyle = ESPUMA;
+  ctx.beginPath(); ctx.ellipse(cx, topY, (w + 4)/2, 5, 0, 0, Math.PI*2); ctx.fill();
+  for (const bx of [cx - topHalf/2, cx, cx + topHalf/2]) {
+    ctx.beginPath(); ctx.arc(bx, topY - 4, 3, 0, Math.PI*2); ctx.fill();
+  }
+}
+
+function drawHud() {
+  const y = BOARD_BOTTOM + 20;
+  ctx.font = font(20);
+  ctx.textBaseline = "top";
+  ctx.fillStyle = CREME;
+  ctx.fillText("SCORE: " + score, BOARD_LEFT, y);
+  const lvl = "NIVEL: " + level + "/" + MAX_LEVEL;
+  ctx.fillText(lvl, BOARD_RIGHT - ctx.measureText(lvl).width, y);
+  ctx.fillStyle = DOURADO;
+  ctx.textAlign = "center";
+  ctx.fillText(DIFFICULTIES[difficulty].label, WIDTH/2, y);
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+}
+
+function drawDpad() {
+  for (const key of ["up", "down", "left", "right"]) {
+    const b = dpad[key];
+    const cx = b.x + b.w/2, cy = b.y + b.h/2;
+    ctx.fillStyle = "rgba(255,255,255,0.24)";
+    ctx.beginPath(); ctx.arc(cx, cy, b.w/2, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = "rgba(235,225,205,0.63)"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(cx, cy, b.w/2, 0, Math.PI*2); ctx.stroke();
+    ctx.fillStyle = CREME;
+    ctx.beginPath();
+    if (key === "up")    { ctx.moveTo(cx, cy-8); ctx.lineTo(cx-8, cy+6); ctx.lineTo(cx+8, cy+6); }
+    if (key === "down")  { ctx.moveTo(cx, cy+8); ctx.lineTo(cx-8, cy-6); ctx.lineTo(cx+8, cy-6); }
+    if (key === "left")  { ctx.moveTo(cx-8, cy); ctx.lineTo(cx+6, cy-8); ctx.lineTo(cx+6, cy+8); }
+    if (key === "right") { ctx.moveTo(cx+8, cy); ctx.lineTo(cx-6, cy-8); ctx.lineTo(cx-6, cy+8); }
+    ctx.closePath(); ctx.fill();
+  }
+}
+
+function wrapText(text, maxW, fontPx) {
+  ctx.font = font(fontPx);
+  const words = text.split(" ");
+  const lines = [];
+  let cur = "";
+  for (const w of words) {
+    const test = (cur + " " + w).trim();
+    if (ctx.measureText(test).width > maxW && cur) { lines.push(cur); cur = w; }
+    else cur = test;
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+
+function drawOverlay(title, titleColor, subtitle) {
+  ctx.fillStyle = "rgba(0,0,0,0.75)";
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+  const lines = message ? wrapText(message, WIDTH - 60, 22) : [];
+  const totalH = lines.length * 30;
+
+  ctx.textAlign = "center";
+  ctx.font = font(34);
+  ctx.fillStyle = titleColor;
+  ctx.fillText(title, WIDTH/2, HEIGHT/2 - 90 + 12);
+
+  ctx.font = font(22);
+  ctx.fillStyle = CREME;
+  let y = HEIGHT/2 - totalH/2 + 8;
+  for (const line of lines) { ctx.fillText(line, WIDTH/2, y); y += 30; }
+
+  ctx.font = font(20);
+  ctx.fillStyle = DOURADO;
+  ctx.fillText(subtitle, WIDTH/2, HEIGHT/2 + totalH/2 + 56);
+  ctx.textAlign = "left";
+}
+
+function drawGameOver() {
+  ctx.fillStyle = "rgba(0,0,0,0.75)";
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  ctx.textAlign = "center";
+  ctx.font = font(34);
+  ctx.fillStyle = VERMELHO;
+  ctx.fillText(GAME_OVER_MESSAGE, WIDTH/2, HEIGHT/2 - 30);
+  ctx.font = font(22);
+  ctx.fillStyle = CREME;
+  ctx.fillText("Score: " + score + "  -  Modulo: " + level, WIDTH/2, HEIGHT/2 + 20);
+  ctx.font = font(20);
+  ctx.fillText("Toque na tela para voltar ao menu", WIDTH/2, HEIGHT/2 + 60);
+  ctx.textAlign = "left";
+}
+
+// ---------------------------------------------------------------------------
+// Loop principal
+// ---------------------------------------------------------------------------
+function frame(now) {
+  if (state === "MENU") {
+    drawMenu(now);
+  } else {
+    if (state === "PLAYING" && now - lastMove >= 1000 / currentFps()) {
+      lastMove = now;
+      update();
     }
+    drawBoard();
+    drawSnake();
+    drawFood();
+    drawHud();
+    if (state === "PLAYING") drawDpad();
+    else if (state === "MILESTONE") drawOverlay("MODULO " + level + "!", DOURADO, "Toque na tela para continuar");
+    else if (state === "WIN") drawOverlay("VOCE VENCEU!", DOURADO, "Toque na tela para voltar ao menu");
+    else if (state === "GAME_OVER") drawGameOver();
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
 
-    function custom_prerun(){
-        // no python main and no (MEMFS + VFS) yet.
-        console.log(__FILE__, "custom_prerun")
+// ---------------------------------------------------------------------------
+// Entrada (teclado, mouse e toque)
+// ---------------------------------------------------------------------------
+function canvasPos(ev) {
+  const r = canvas.getBoundingClientRect();
+  return [
+    (ev.clientX - r.left) * (WIDTH / r.width),
+    (ev.clientY - r.top) * (HEIGHT / r.height),
+  ];
+}
 
+function inRect(x, y, b) { return x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h; }
+
+canvas.addEventListener("pointermove", ev => {
+  [mouseX, mouseY] = canvasPos(ev);
+});
+
+canvas.addEventListener("pointerdown", ev => {
+  ev.preventDefault();
+  startMusic();
+  const [x, y] = canvasPos(ev);
+
+  if (state === "MENU") {
+    if (inRect(x, y, btnFacil)) startGame("facil");
+    else if (inRect(x, y, btnDificil)) startGame("dificil");
+  } else if (state === "PLAYING") {
+    for (const key of ["up", "down", "left", "right"]) {
+      const b = dpad[key];
+      if (inRect(x, y, b)) { steer(b.dir, b.opp); return; }
     }
+  } else if (state === "MILESTONE") {
+    state = "PLAYING";
+    lastMove = performance.now();
+  } else if (state === "GAME_OVER" || state === "WIN") {
+    state = "MENU";
+  }
+});
 
-    function custom_postrun(){
-        // python main and no VFS filesystem yet.
-        console.log(__FILE__, "custom_postrun")
+document.addEventListener("keydown", ev => {
+  startMusic();
+  const k = ev.key;
 
-    }
-
-    function debug() {
-        // allow to gain access to dev tools from js console
-        // but only on desktop. difficult to reach when in iframe
-        python.config.debug = true
-        custom_onload(false)
-        Module.PyRun_SimpleString("shell.uptime()")
-        window_resize()
-    }
-
-    function info_inline(data){
-        document.getElementById("info").innerHTML = data
-    }
-
-    function info_online(url) {
-        // display info about current APK
-        fetch( url /*, options */)
-            .then((response) => response.text())
-            .then((html) => {
-                info_inline(html);
-        })
-        .catch((error) => {
-            console.warn(error);
-        });
-    }
-
-    function frame_online(url) {
-        window.frames["iframe"].location = url;
-    }
-
-    </script>
-
+  if (state === "MENU") {
+    if (k === "1" || k === "f" || k === "F") startGame("facil");
+    else if (k === "2" || k === "d" || k === "D") startGame("dificil");
+  } else if (state === "PLAYING") {
+    if (k === "ArrowUp" || k === "w" || k === "W") { steer(UP, DOWN); ev.preventDefault(); }
+    else if (k === "ArrowDown" || k === "s" || k === "S") { steer(DOWN, UP); ev.preventDefault(); }
+    else if (k === "ArrowLeft" || k === "a" || k === "A") { steer(LEFT, RIGHT); ev.preventDefault(); }
+    else if (k === "ArrowRight" || k === "d" || k === "D") { steer(RIGHT, LEFT); ev.preventDefault(); }
+  } else if (state === "MILESTONE") {
+    if (k === " " || k === "Enter") { state = "PLAYING"; lastMove = performance.now(); }
+  } else if (state === "GAME_OVER" || state === "WIN") {
+    if (k === "r" || k === "R") state = "MENU";
+  }
+});
+</script>
 </body>
 </html>

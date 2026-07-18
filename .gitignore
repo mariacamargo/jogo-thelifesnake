@@ -5,7 +5,3 @@ __pycache__/
 # fica de fora do repositorio por padrao - so no seu PC.
 /assets/*
 !/assets/.gitkeep
-
-# artefatos gerados pelo pygbag ao construir a versao web
-# (o build publicado que importa fica versionado em docs/)
-web/build/
